@@ -15,41 +15,32 @@ import (
 409 — логин уже занят;
 500 — внутренняя ошибка сервера.
 */
-func registerHandler(db *storage.DBContext) http.HandlerFunc {
+func registerHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		utils.Log.Info("registerHandler")
 
 		loginModel, err := services.ReadAuthModel(r)
-		utils.Log.Info("User ", loginModel.Login)
 		if err != nil {
-			var formatError *models.FormatError
-			if errors.As(err, &formatError) {
-				utils.Log.Error("error reading request model:", err.Error())
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			utils.Log.Error("error reading request model:", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			errorHandler(err, w)
 			return
 		}
 
-		err = db.CreateNewUser(loginModel.Login, loginModel.Password)
+		err = services.CreateUser(db, loginModel.Login, loginModel.Password)
 		if err != nil {
-			utils.Log.Error("db error:", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			errorHandler(err, w)
 			return
 		}
 
-		token, err := services.BuildJWTToken(1, "")
+		token, err := services.AuthUser(db, secretKey, loginModel.Login, loginModel.Password)
 		if err != nil {
-			utils.Log.Error("error building JWT token")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			errorHandler(err, w)
 			return
 		}
 		w.Header().Set("Authorization", token)
 
 	}
 }
+
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	utils.Log.Info("loginHandler")
 
@@ -73,4 +64,37 @@ func withdrawBalanceHandler(w http.ResponseWriter, r *http.Request) {
 func showWithdrawalsBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	utils.Log.Info("showWithdrawalsBalanceHandler")
 
+}
+
+/*
+400 FormatError
+401 LoginPasswordError
+409 AlreadyExistError
+500 Internal
+*/
+func errorHandler(err error, w http.ResponseWriter) {
+	var formatError *models.FormatError
+	if errors.As(err, &formatError) {
+		utils.Log.Error("error format request model:", err.Error())
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	var alreadyExistError *models.AlreadyExistError
+	if errors.As(err, &alreadyExistError) {
+		utils.Log.Error("error already exist:", err.Error())
+		http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
+		return
+	}
+
+	var loginPasswordError *models.LoginPasswordError
+	if errors.As(err, &loginPasswordError) {
+		utils.Log.Error("error login/password pair:", err.Error())
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	utils.Log.Error("internal error: ", err.Error())
+	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	return
 }

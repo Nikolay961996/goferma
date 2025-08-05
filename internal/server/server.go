@@ -12,7 +12,7 @@ func Run(config *Config) {
 
 	dbContext := storage.NewDBStorage(config.databaseUri)
 
-	err := http.ListenAndServe(config.runAddress, router.GofermaRouter(dbContext))
+	err := http.ListenAndServe(config.runAddress, router.GofermaRouter(dbContext, config.secretKey))
 	if err != nil {
 		utils.Log.Fatal("Can't start server: ", err)
 	}

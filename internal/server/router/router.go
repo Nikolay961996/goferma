@@ -5,10 +5,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func GofermaRouter(dbContext *storage.DBContext) *chi.Mux {
+func GofermaRouter(dbContext *storage.DBContext, secretKey string) *chi.Mux {
 	router := chi.NewRouter()
 
-	router.Post("/api/user/register", registerHandler(dbContext))
+	router.Post("/api/user/register", registerHandler(dbContext, secretKey))
 	router.Post("/api/user/login", loginHandler)
 	router.Post("/api/user/orders", setOrdersHandler)
 	router.Get("/api/user/balance", getBalanceHandler)
