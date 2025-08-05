@@ -18,32 +18,21 @@ import (
 func registerHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		utils.Log.Info("registerHandler")
-
-		loginModel, err := services.ReadAuthModel(r)
-		if err != nil {
-			errorHandler(err, w)
-			return
-		}
-
-		err = services.CreateUser(db, loginModel.Login, loginModel.Password)
-		if err != nil {
-			errorHandler(err, w)
-			return
-		}
-
-		token, err := services.AuthUser(db, secretKey, loginModel.Login, loginModel.Password)
-		if err != nil {
-			errorHandler(err, w)
-			return
-		}
-		w.Header().Set("Authorization", token)
-
+		authHandler(db, secretKey, w, r, true)
 	}
 }
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	utils.Log.Info("loginHandler")
-
+/*
+200 — пользователь успешно аутентифицирован;
+400 — неверный формат запроса;
+401 — неверная пара логин/пароль;
+500 — внутренняя ошибка сервера.
+*/
+func loginHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		utils.Log.Info("loginHandler")
+		authHandler(db, secretKey, w, r, false)
+	}
 }
 
 func setOrdersHandler(w http.ResponseWriter, r *http.Request) {
@@ -64,6 +53,29 @@ func withdrawBalanceHandler(w http.ResponseWriter, r *http.Request) {
 func showWithdrawalsBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	utils.Log.Info("showWithdrawalsBalanceHandler")
 
+}
+
+func authHandler(db *storage.DBContext, secretKey string, w http.ResponseWriter, r *http.Request, isRegistration bool) {
+	loginModel, err := services.ReadAuthModel(r)
+	if err != nil {
+		errorHandler(err, w)
+		return
+	}
+
+	if isRegistration {
+		err = services.CreateUser(db, loginModel.Login, loginModel.Password)
+		if err != nil {
+			errorHandler(err, w)
+			return
+		}
+	}
+
+	token, err := services.AuthUser(db, secretKey, loginModel.Login, loginModel.Password)
+	if err != nil {
+		errorHandler(err, w)
+		return
+	}
+	w.Header().Set("Authorization", token)
 }
 
 /*

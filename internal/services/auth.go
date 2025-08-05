@@ -48,7 +48,7 @@ func CreateUser(db *storage.DBContext, login string, password string) error {
 	}
 
 	pswHash := getPasswordHash(password)
-	err = db.AddNewUser(login, string(pswHash))
+	err = db.AddNewUser(login, pswHash)
 	if err != nil {
 		utils.Log.Error(err.Error())
 		return err
