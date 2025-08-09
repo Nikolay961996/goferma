@@ -70,9 +70,9 @@ func (db *DBContext) GetUserForOrder(orderNumber string) (int64, error) {
 
 func (db *DBContext) SetUserOrder(userId int64, orderNumber string) error {
 	query := `
-		INSERT INTO orders (user_id, order_number)
-		VALUES ($1, $2);`
-	_, err := db.db.Exec(query, userId, orderNumber)
+		INSERT INTO orders (user_id, order_number, status)
+		VALUES ($1, $2, $3);`
+	_, err := db.db.Exec(query, userId, orderNumber, models.NEW)
 	if err != nil {
 		utils.Log.Error("error insert new order for user: ", err.Error())
 		return err
