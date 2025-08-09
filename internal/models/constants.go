@@ -14,3 +14,7 @@ const (
 	INVALID
 	PROCESSED
 )
+
+func (s OrderStatus) String() string {
+	return [...]string{"NEW", "PROCESSING", "INVALID", "PROCESSED"}[s]
+}

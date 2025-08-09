@@ -1,7 +1,9 @@
 package router
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/Nikolay961996/goferma/internal/models"
 	"github.com/Nikolay961996/goferma/internal/services"
 	"github.com/Nikolay961996/goferma/internal/storage"
@@ -71,10 +73,42 @@ func setOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc 
 
 /*
 200 — успешная обработка запроса.
+204 — нет данных для ответа.
+401 — пользователь не авторизован.
+500 — внутренняя ошибка сервера.
 */
-func getBalanceHandler(w http.ResponseWriter, r *http.Request) {
-	utils.Log.Info("getBalanceHandler")
+func getBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		utils.Log.Info("getBalanceHandler")
+		w.Header().Set("Content-Type", "application/json")
+		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
+		if err != nil {
+			errorHandler(err, w)
+			return
+		}
 
+		orders, err := db.GetUserOrders(userId)
+		if err != nil {
+			errorHandler(err, w)
+			return
+		}
+		if orders == nil {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		resp, err := json.Marshal(orders)
+		if err != nil {
+			utils.Log.Error(fmt.Sprintf("Error marshalling body: %v", err))
+			errorHandler(err, w)
+			return
+		}
+		_, err = w.Write(resp)
+		if err != nil {
+			utils.Log.Error(fmt.Sprintf("Error write body: %v", err))
+			errorHandler(err, w)
+			return
+		}
+	}
 }
 
 func withdrawBalanceHandler(w http.ResponseWriter, r *http.Request) {

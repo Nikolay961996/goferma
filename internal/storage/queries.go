@@ -72,7 +72,7 @@ func (db *DBContext) GetUserForOrder(orderNumber string) (int64, error) {
 func (db *DBContext) SetUserOrder(userId int64, orderNumber string) error {
 	query := `
 		INSERT INTO orders (user_id, order_number, accrual, status, uploaded_at)
-		VALUES ($1, $2, $3, $4);`
+		VALUES ($1, $2, $3, $4, $5);`
 	_, err := db.db.Exec(query, userId, orderNumber, 0, models.NEW, time.Now())
 	if err != nil {
 		utils.Log.Error("error insert new order for user: ", err.Error())
@@ -80,4 +80,47 @@ func (db *DBContext) SetUserOrder(userId int64, orderNumber string) error {
 	}
 
 	return nil
+}
+
+func (db *DBContext) GetUserOrders(userId int64) ([]models.OrdersResponse, error) {
+	query := `
+		SELECT order_number, status, accrual, uploaded_at
+		FROM orders
+		WHERE user_id = $1;`
+
+	var orders []models.OrdersResponse
+	rows, err := db.db.Query(query, userId)
+	defer rows.Close()
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		utils.Log.Error("error get rows userOrders: ", err.Error())
+		return nil, err
+	}
+
+	for rows.Next() {
+		var order models.OrdersResponse
+		var accrual int64
+		var status models.OrderStatus
+		var uploadedAt time.Time
+		err := rows.Scan(&order.Number, &status, &accrual, &uploadedAt)
+		if err != nil {
+			utils.Log.Error("error get userOrders: ", err.Error())
+			return nil, err
+		}
+		order.Accrual = float64(accrual) / 100
+		order.Status = status.String()
+		order.UploadedAt = uploadedAt.Format(time.RFC3339)
+		orders = append(orders, order)
+
+	}
+
+	err = rows.Err()
+	if err != nil {
+		utils.Log.Error(err)
+		return nil, err
+	}
+
+	return orders, nil
 }
