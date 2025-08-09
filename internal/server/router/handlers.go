@@ -35,9 +35,38 @@ func loginHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 	}
 }
 
-func setOrdersHandler(w http.ResponseWriter, r *http.Request) {
-	utils.Log.Info("setOrdersHandler")
+/*
+200 — номер заказа уже был загружен этим пользователем;
+202 — новый номер заказа принят в обработку;
+400 — неверный формат запроса;
+401 — пользователь не аутентифицирован;
+409 — номер заказа уже был загружен другим пользователем;
+422 — неверный формат номера заказа;
+500 — внутренняя ошибка сервера.
+*/
+func setOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		utils.Log.Info("setOrdersHandler")
+		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
+		if err != nil {
+			errorHandler(err, w)
+			return
+		}
+		orderNumber, err := services.GetOrderNumber(r.Header.Get("content-type"), r.Body)
+		if err != nil {
+			errorHandler(err, w)
+			return
+		}
 
+		createdNew, err := services.RegisterOrder(db, orderNumber, userId)
+		if err != nil {
+			errorHandler(err, w)
+			return
+		}
+		if createdNew {
+			w.WriteHeader(http.StatusAccepted)
+		}
+	}
 }
 
 func getBalanceHandler(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +85,12 @@ func showWithdrawalsBalanceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func authHandler(db *storage.DBContext, secretKey string, w http.ResponseWriter, r *http.Request, isRegistration bool) {
-	loginModel, err := services.ReadAuthModel(r)
+	if r.Method != http.MethodPost {
+		utils.Log.Warn("Not correct method")
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+	loginModel, err := services.ReadAuthModel(r.Header.Get("content-type"), r.Body)
 	if err != nil {
 		errorHandler(err, w)
 		return
@@ -82,6 +116,7 @@ func authHandler(db *storage.DBContext, secretKey string, w http.ResponseWriter,
 400 FormatError
 401 LoginPasswordError
 409 AlreadyExistError
+422 IncorrectInputError
 500 Internal
 */
 func errorHandler(err error, w http.ResponseWriter) {
@@ -103,6 +138,13 @@ func errorHandler(err error, w http.ResponseWriter) {
 	if errors.As(err, &loginPasswordError) {
 		utils.Log.Error("error login/password pair:", err.Error())
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	var incorrectInputError *models.IncorrectInputError
+	if errors.As(err, &incorrectInputError) {
+		utils.Log.Error("error incorrect input:", err.Error())
+		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 		return
 	}
 

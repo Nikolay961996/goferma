@@ -10,7 +10,7 @@ import (
 	"github.com/Nikolay961996/goferma/internal/storage"
 	"github.com/Nikolay961996/goferma/internal/utils"
 	"github.com/golang-jwt/jwt/v4"
-	"net/http"
+	"io"
 	"time"
 )
 
@@ -19,8 +19,13 @@ type Claims struct {
 	UserID int64
 }
 
-func ReadAuthModel(r *http.Request) (*models.AuthRequest, error) {
-	bytes, err := utils.ReadJSONBody(r)
+func ReadAuthModel(contentType string, body io.ReadCloser) (*models.AuthRequest, error) {
+	if contentType != "application/json" {
+		utils.Log.Error(errors.New("not json"))
+		return nil, &models.FormatError{Err: errors.New("not text/plain")}
+	}
+
+	bytes, err := utils.ReadJSONBody(body)
 	if err != nil {
 		utils.Log.Error(err.Error())
 		return nil, err
@@ -81,41 +86,30 @@ func AuthUser(db *storage.DBContext, secretKey string, login string, password st
 	return token, nil
 }
 
-/*
-func GetUserID(jwtToken string, secretKey string) (int, error) {
+func GetUserID(jwtToken string, secretKey string) (int64, error) {
+	if jwtToken == "" {
+		utils.Log.Error("empty token")
+		return 0, &models.LoginPasswordError{Err: errors.New("empty token")}
+	}
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(jwtToken, claims, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(secretKey), nil
 	})
 	if err != nil {
 		utils.Log.Error("Error parsing token")
-		return 0, err
+		return 0, &models.LoginPasswordError{Err: err}
 	}
 
 	if !token.Valid {
 		utils.Log.Error("Invalid token")
-		return 0, errors.New("invalid token")
+		return 0, &models.LoginPasswordError{Err: errors.New("invalid token")}
 	}
 
 	return claims.UserID, nil
 }
-*/
-
-/*
-func IsJWBTokenValid(jwtToken string, secretKey string) bool {
-	token, err := jwt.ParseWithClaims(jwtToken, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secretKey), nil
-	})
-	if err != nil {
-		utils.Log.Error("Error parsing token")
-		return false
-	}
-	return token.Valid
-}
-*/
 
 func getPasswordHash(password string) string {
 	h := sha256.New()
