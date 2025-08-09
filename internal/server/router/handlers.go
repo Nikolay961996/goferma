@@ -69,6 +69,9 @@ func setOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc 
 	}
 }
 
+/*
+200 — успешная обработка запроса.
+*/
 func getBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	utils.Log.Info("getBalanceHandler")
 
@@ -85,11 +88,6 @@ func showWithdrawalsBalanceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func authHandler(db *storage.DBContext, secretKey string, w http.ResponseWriter, r *http.Request, isRegistration bool) {
-	if r.Method != http.MethodPost {
-		utils.Log.Warn("Not correct method")
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return
-	}
 	loginModel, err := services.ReadAuthModel(r.Header.Get("content-type"), r.Body)
 	if err != nil {
 		errorHandler(err, w)

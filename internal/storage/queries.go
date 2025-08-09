@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/Nikolay961996/goferma/internal/models"
 	"github.com/Nikolay961996/goferma/internal/utils"
+	"time"
 )
 
 func (db *DBContext) CreateNewUser(login string, pswHash string) error {
@@ -70,9 +71,9 @@ func (db *DBContext) GetUserForOrder(orderNumber string) (int64, error) {
 
 func (db *DBContext) SetUserOrder(userId int64, orderNumber string) error {
 	query := `
-		INSERT INTO orders (user_id, order_number, status)
-		VALUES ($1, $2, $3);`
-	_, err := db.db.Exec(query, userId, orderNumber, models.NEW)
+		INSERT INTO orders (user_id, order_number, accrual, status, uploaded_at)
+		VALUES ($1, $2, $3, $4);`
+	_, err := db.db.Exec(query, userId, orderNumber, 0, models.NEW, time.Now())
 	if err != nil {
 		utils.Log.Error("error insert new order for user: ", err.Error())
 		return err
