@@ -18,6 +18,10 @@ type IncorrectInputError struct {
 	Err error
 }
 
+type NotEnoughError struct {
+	Err error
+}
+
 func (fe *FormatError) Error() string {
 	return fmt.Sprintf("Format error [%s]", fe.Err)
 }
@@ -32,4 +36,8 @@ func (fe *LoginPasswordError) Error() string {
 
 func (fe *IncorrectInputError) Error() string {
 	return fmt.Sprintf("Incorrect input error [%s]", fe.Err)
+}
+
+func (fe *NotEnoughError) Error() string {
+	return fmt.Sprintf("Not enough error [%s]", fe.Err)
 }

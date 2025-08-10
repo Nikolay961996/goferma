@@ -69,11 +69,11 @@ func (db *DBContext) GetUserForOrder(orderNumber string) (int64, error) {
 	return userId, nil
 }
 
-func (db *DBContext) SetUserOrder(userId int64, orderNumber string) error {
+func (db *DBContext) SetUserOrder(userId int64, orderNumber string, status models.OrderStatus, accrual float64) error {
 	query := `
 		INSERT INTO orders (user_id, order_number, accrual, status, uploaded_at)
 		VALUES ($1, $2, $3, $4, $5);`
-	_, err := db.db.Exec(query, userId, orderNumber, 0, models.NEW, time.Now())
+	_, err := db.db.Exec(query, userId, orderNumber, int64(accrual*100), status, time.Now())
 	if err != nil {
 		utils.Log.Error("error insert new order for user: ", err.Error())
 		return err
@@ -123,4 +123,46 @@ func (db *DBContext) GetUserOrders(userId int64) ([]models.OrdersResponse, error
 	}
 
 	return orders, nil
+}
+
+func (db *DBContext) GerUserCurrentAccrual(userId int64) (float64, error) {
+	query := `
+		SELECT sum(accrual)
+		FROM orders
+		WHERE user_id = $1 and status = $2;`
+	var accrualSum sql.NullInt64
+	err := db.db.QueryRow(query, userId, models.PROCESSED).Scan(&accrualSum)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
+		utils.Log.Error("error get user balance: ", err.Error())
+		return 0, err
+	}
+	if !accrualSum.Valid {
+		return 0, nil
+	}
+
+	return float64(accrualSum.Int64) / 100, nil
+}
+
+func (db *DBContext) GerUserWithdrawn(userId int64) (float64, error) {
+	query := `
+		SELECT sum(accrual)
+		FROM orders
+		WHERE user_id = $1 and status = $2 and accrual < 0;`
+	var withdrawnSum sql.NullInt64
+	err := db.db.QueryRow(query, userId, models.PROCESSED).Scan(&withdrawnSum)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
+		utils.Log.Error("error get user balance: ", err.Error())
+		return 0, err
+	}
+	if !withdrawnSum.Valid {
+		return 0, nil
+	}
+
+	return float64(-withdrawnSum.Int64) / 100, nil
 }

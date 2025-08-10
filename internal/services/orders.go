@@ -31,14 +31,14 @@ func GetOrderNumber(contentType string, body io.ReadCloser) (string, error) {
 	return number, nil
 }
 
-func RegisterOrder(db *storage.DBContext, orderNumber string, userId int64) (bool, error) {
+func RegisterOrder(db *storage.DBContext, orderNumber string, userId int64, status models.OrderStatus, accrual float64) (bool, error) {
 	orderUserId, err := db.GetUserForOrder(orderNumber)
 	if err != nil {
 		return false, err
 	}
 
 	if orderUserId == 0 {
-		err = db.SetUserOrder(userId, orderNumber)
+		err = db.SetUserOrder(userId, orderNumber, status, accrual)
 		if err != nil {
 			return false, err
 		}

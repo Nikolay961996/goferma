@@ -11,8 +11,9 @@ func GofermaRouter(dbContext *storage.DBContext, secretKey string) *chi.Mux {
 	router.Post("/api/user/register", registerHandler(dbContext, secretKey))
 	router.Post("/api/user/login", loginHandler(dbContext, secretKey))
 	router.Post("/api/user/orders", setOrdersHandler(dbContext, secretKey))
+	router.Get("/api/user/orders", getOrdersHandler(dbContext, secretKey))
 	router.Get("/api/user/balance", getBalanceHandler(dbContext, secretKey))
-	router.Post("/api/user/balance/withdraw", withdrawBalanceHandler)
+	router.Post("/api/user/balance/withdraw", withdrawBalanceHandler(dbContext, secretKey))
 	router.Get("/api/user/withdrawals", showWithdrawalsBalanceHandler)
 
 	return router

@@ -60,7 +60,7 @@ func setOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc 
 			return
 		}
 
-		createdNew, err := services.RegisterOrder(db, orderNumber, userId)
+		createdNew, err := services.RegisterOrder(db, orderNumber, userId, models.NEW, 0)
 		if err != nil {
 			errorHandler(err, w)
 			return
@@ -77,9 +77,9 @@ func setOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc 
 401 — пользователь не авторизован.
 500 — внутренняя ошибка сервера.
 */
-func getBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
+func getOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		utils.Log.Info("getBalanceHandler")
+		utils.Log.Info("getOrdersHandler")
 		w.Header().Set("Content-Type", "application/json")
 		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
 		if err != nil {
@@ -96,24 +96,60 @@ func getBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		resp, err := json.Marshal(orders)
+		writeToResponse(w, orders)
+	}
+}
+
+/*
+200 — успешная обработка запроса.
+401 — пользователь не авторизован.
+500 — внутренняя ошибка сервера.
+*/
+func getBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		utils.Log.Info("getBalanceHandler")
+		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
 		if err != nil {
-			utils.Log.Error(fmt.Sprintf("Error marshalling body: %v", err))
 			errorHandler(err, w)
 			return
 		}
-		_, err = w.Write(resp)
+		w.Header().Set("Content-Type", "application/json")
+		data, err := services.GetUserBalance(db, userId)
 		if err != nil {
-			utils.Log.Error(fmt.Sprintf("Error write body: %v", err))
+			errorHandler(err, w)
+			return
+		}
+		writeToResponse(w, data)
+	}
+}
+
+/*
+200 — успешная обработка запроса;
+401 — пользователь не авторизован;
+402 — на счету недостаточно средств;
+422 — неверный номер заказа;
+500 — внутренняя ошибка сервера.
+*/
+func withdrawBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		utils.Log.Info("withdrawBalanceHandler")
+		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
+		if err != nil {
+			errorHandler(err, w)
+			return
+		}
+
+		model, err := services.ReadWithdrawnModel(r.Header.Get("content-type"), r.Body)
+		if err != nil {
+			errorHandler(err, w)
+			return
+		}
+		err = services.Withdrawn(db, userId, model.Sum, model.Order)
+		if err != nil {
 			errorHandler(err, w)
 			return
 		}
 	}
-}
-
-func withdrawBalanceHandler(w http.ResponseWriter, r *http.Request) {
-	utils.Log.Info("withdrawBalanceHandler")
-
 }
 
 func showWithdrawalsBalanceHandler(w http.ResponseWriter, r *http.Request) {
@@ -144,9 +180,25 @@ func authHandler(db *storage.DBContext, secretKey string, w http.ResponseWriter,
 	w.Header().Set("Authorization", token)
 }
 
+func writeToResponse(w http.ResponseWriter, data any) {
+	resp, err := json.Marshal(data)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("Error marshalling body: %v", err))
+		errorHandler(err, w)
+		return
+	}
+	_, err = w.Write(resp)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("Error write body: %v", err))
+		errorHandler(err, w)
+		return
+	}
+}
+
 /*
 400 FormatError
 401 LoginPasswordError
+402 NotEnoughError
 409 AlreadyExistError
 422 IncorrectInputError
 500 Internal
@@ -170,6 +222,13 @@ func errorHandler(err error, w http.ResponseWriter) {
 	if errors.As(err, &loginPasswordError) {
 		utils.Log.Error("error login/password pair:", err.Error())
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	var notEnoughError *models.NotEnoughError
+	if errors.As(err, &notEnoughError) {
+		utils.Log.Error("error not enough:", err.Error())
+		http.Error(w, http.StatusText(http.StatusPaymentRequired), http.StatusPaymentRequired)
 		return
 	}
 
