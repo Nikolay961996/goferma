@@ -1,0 +1,113 @@
+package workers
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/Nikolay961996/goferma/internal/models"
+	"github.com/Nikolay961996/goferma/internal/storage"
+	"github.com/Nikolay961996/goferma/internal/utils"
+	"github.com/go-resty/resty/v2"
+	"net/http"
+	"time"
+)
+
+func CreateWorkerDistributor(db *storage.DBContext, done context.Context) <-chan job {
+	ticker := time.NewTicker(1 * time.Second)
+	out := make(chan job, 10)
+
+	go func() {
+		defer ticker.Stop()
+		defer close(out)
+		for {
+			select {
+			case <-ticker.C:
+				orders, err := db.GerUnprocessedOrders()
+				if err != nil {
+					utils.Log.Error("error getting unprocessed orders: ", err.Error())
+				}
+				utils.Log.Info("Find ", len(orders), " unprocessed orders")
+				for _, order := range orders {
+					out <- job{Order: order}
+				}
+			case <-done.Done():
+				utils.Log.Info("WorkerDistributor done")
+				return
+			}
+		}
+	}()
+
+	return out
+}
+
+func RunWorker(workerId int, db *storage.DBContext, done context.Context, jobs <-chan job, loyaltyAddress string) {
+	utils.Log.Info("Starting worker", workerId)
+
+	for {
+		select {
+		case job := <-jobs:
+			loyalty := sendToLoyalty(loyaltyAddress, job.Order.Number)
+			loyaltyStatus := loyaltyStatus(loyalty.Status)
+			newStatus := loyaltyStatusToOrderStatus(loyaltyStatus)
+			if job.Order.CurrentStatus == newStatus {
+				utils.Log.Info("Order", job.Order.Number, "status is not changed. New status=", loyaltyStatus)
+				continue
+			}
+			updateOrder(db, job.Order.Id, loyalty.Accrual, newStatus)
+
+		case <-done.Done():
+			utils.Log.Info("WorkerDistributor done")
+			return
+		}
+	}
+}
+
+func sendToLoyalty(loyaltyAddress string, orderNumber string) *loyaltyResponse {
+	client := resty.New()
+	url := fmt.Sprintf("%s/api/orders/%s", loyaltyAddress, orderNumber)
+	request := client.R()
+	response, err := request.Get(url)
+	if err != nil {
+		utils.Log.Error(err.Error())
+		return nil
+	}
+	if response.StatusCode() != http.StatusOK {
+		return nil
+	}
+	if response.StatusCode() == http.StatusTooManyRequests {
+		time.Sleep(100 * time.Millisecond)
+		return nil
+	}
+
+	body := response.Body()
+	var data loyaltyResponse
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		utils.Log.Error(err.Error())
+		return nil
+	}
+
+	return &data
+}
+
+func updateOrder(db *storage.DBContext, orderId int64, accrual float64, newStatus models.OrderStatus) {
+	err := db.UpdateOrder(orderId, newStatus, accrual)
+	if err != nil {
+		utils.Log.Error(err.Error())
+	}
+}
+
+func loyaltyStatusToOrderStatus(loyaltyStatus loyaltyStatus) models.OrderStatus {
+	switch loyaltyStatus {
+	case registered:
+		return models.NEW
+	case processing:
+		return models.PROCESSING
+	case processed:
+		return models.PROCESSED
+	case invalid:
+		return models.INVALID
+	}
+	utils.Log.Error("Unknown loyalty status. ", loyaltyStatus, " Set as invalid")
+	return models.INVALID
+}

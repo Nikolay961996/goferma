@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/Nikolay961996/goferma/internal/models"
 	"github.com/Nikolay961996/goferma/internal/utils"
+	"github.com/lib/pq"
 	"time"
 )
 
@@ -205,4 +206,55 @@ func (db *DBContext) GerUserWithdrawnHistory(userId int64) ([]models.WithdrawHis
 	}
 
 	return withdrawHistory, nil
+}
+
+func (db *DBContext) GerUnprocessedOrders() ([]models.Order, error) {
+	query := `
+		SELECT id, order_number, status
+		FROM orders
+		WHERE NOT (status = ANY($1));`
+
+	var orders []models.Order
+	rows, err := db.db.Query(query, pq.Array([]models.OrderStatus{models.PROCESSED, models.INVALID}))
+	defer rows.Close()
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		utils.Log.Error("error get rows unprocessed orders: ", err.Error())
+		return nil, err
+	}
+
+	for rows.Next() {
+		var order models.Order
+		err := rows.Scan(&order.Id, &order.Number, &order.CurrentStatus)
+		if err != nil {
+			utils.Log.Error("error get unprocessed orders: ", err.Error())
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		utils.Log.Error(err)
+		return nil, err
+	}
+
+	return orders, nil
+}
+
+func (db *DBContext) UpdateOrder(orderId int64, newStatus models.OrderStatus, accrual float64) error {
+	query := `
+		UPDATE orders SET
+			status = $1,
+			accrual = $2
+		WHERE id = $3;`
+	_, err := db.db.Exec(query, newStatus, accrual, orderId)
+	if err != nil {
+		utils.Log.Error("error update order: ", err.Error())
+		return err
+	}
+
+	return nil
 }
