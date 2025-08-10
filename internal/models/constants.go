@@ -18,3 +18,9 @@ const (
 func (s OrderStatus) String() string {
 	return [...]string{"NEW", "PROCESSING", "INVALID", "PROCESSED"}[s]
 }
+
+type contextKey string
+
+const (
+	UserIDKey contextKey = "userID"
+)

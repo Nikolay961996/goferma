@@ -44,11 +44,10 @@ func loginHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 422 — неверный формат номера заказа;
 500 — внутренняя ошибка сервера.
 */
-func setOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
+func setOrdersHandler(db *storage.DBContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
-		if err != nil {
-			errorHandler(err, w)
+		userID := getUserID(w, r)
+		if userID == 0 {
 			return
 		}
 		orderNumber, err := services.GetOrderNumber(r.Header.Get("content-type"), r.Body)
@@ -57,7 +56,7 @@ func setOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc 
 			return
 		}
 
-		createdNew, err := services.RegisterOrder(db, orderNumber, userId, models.NEW, 0)
+		createdNew, err := services.RegisterOrder(db, orderNumber, userID, models.NEW, 0)
 		if err != nil {
 			errorHandler(err, w)
 			return
@@ -74,16 +73,14 @@ func setOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc 
 401 — пользователь не авторизован.
 500 — внутренняя ошибка сервера.
 */
-func getOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
+func getOrdersHandler(db *storage.DBContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
-		if err != nil {
-			errorHandler(err, w)
+		userID := getUserID(w, r)
+		if userID == 0 {
 			return
 		}
-
-		orders, err := db.GetUserOrders(userId)
+		orders, err := db.GetUserOrders(userID)
 		if err != nil {
 			errorHandler(err, w)
 			return
@@ -101,15 +98,14 @@ func getOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc 
 401 — пользователь не авторизован.
 500 — внутренняя ошибка сервера.
 */
-func getBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
+func getBalanceHandler(db *storage.DBContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
-		if err != nil {
-			errorHandler(err, w)
+		userID := getUserID(w, r)
+		if userID == 0 {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		data, err := services.GetUserBalance(db, userId)
+		data, err := services.GetUserBalance(db, userID)
 		if err != nil {
 			errorHandler(err, w)
 			return
@@ -125,20 +121,18 @@ func getBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc
 422 — неверный номер заказа;
 500 — внутренняя ошибка сервера.
 */
-func withdrawBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
+func withdrawBalanceHandler(db *storage.DBContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
-		if err != nil {
-			errorHandler(err, w)
+		userID := getUserID(w, r)
+		if userID == 0 {
 			return
 		}
-
 		model, err := services.ReadWithdrawnModel(r.Header.Get("content-type"), r.Body)
 		if err != nil {
 			errorHandler(err, w)
 			return
 		}
-		err = services.Withdrawn(db, userId, model.Sum, model.Order)
+		err = services.Withdrawn(db, userID, model.Sum, model.Order)
 		if err != nil {
 			errorHandler(err, w)
 			return
@@ -152,14 +146,13 @@ func withdrawBalanceHandler(db *storage.DBContext, secretKey string) http.Handle
 401 — пользователь не авторизован.
 500 — внутренняя ошибка сервера.
 */
-func showWithdrawalsBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
+func showWithdrawalsBalanceHandler(db *storage.DBContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
-		if err != nil {
-			errorHandler(err, w)
+		userID := getUserID(w, r)
+		if userID == 0 {
 			return
 		}
-		withdrawnHistory, err := db.GerUserWithdrawnHistory(userId)
+		withdrawnHistory, err := db.GerUserWithdrawnHistory(userID)
 		if err != nil {
 			errorHandler(err, w)
 			return
@@ -195,6 +188,15 @@ func authHandler(db *storage.DBContext, secretKey string, w http.ResponseWriter,
 	w.Header().Set("Authorization", token)
 }
 
+func getUserID(w http.ResponseWriter, r *http.Request) int64 {
+	userID, ok := r.Context().Value(models.UserIDKey).(int64)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return 0
+	}
+	return userID
+}
+
 func writeToResponse(w http.ResponseWriter, data any) {
 	resp, err := json.Marshal(data)
 	if err != nil {
@@ -212,7 +214,6 @@ func writeToResponse(w http.ResponseWriter, data any) {
 
 /*
 400 FormatError
-401 LoginPasswordError
 402 NotEnoughError
 409 AlreadyExistError
 422 IncorrectInputError
@@ -230,13 +231,6 @@ func errorHandler(err error, w http.ResponseWriter) {
 	if errors.As(err, &alreadyExistError) {
 		utils.Log.Error("error already exist:", err.Error())
 		http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
-		return
-	}
-
-	var loginPasswordError *models.LoginPasswordError
-	if errors.As(err, &loginPasswordError) {
-		utils.Log.Error("error login/password pair:", err.Error())
-		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		return
 	}
 

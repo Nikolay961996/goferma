@@ -1,6 +1,9 @@
 package router
 
 import (
+	"context"
+	"github.com/Nikolay961996/goferma/internal/models"
+	"github.com/Nikolay961996/goferma/internal/services"
 	"github.com/Nikolay961996/goferma/internal/utils"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -56,4 +59,19 @@ func WithLogger(h http.Handler) http.Handler {
 			"size":     lw.data.size,
 		}).Info("request log")
 	})
+}
+
+func WithAuth(secretKey string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userID, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
+			if err != nil {
+				utils.Log.Error("error login/password pair:", err.Error())
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+			ctx := context.WithValue(r.Context(), models.UserIDKey, userID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }
