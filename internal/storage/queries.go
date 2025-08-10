@@ -166,3 +166,43 @@ func (db *DBContext) GerUserWithdrawn(userId int64) (float64, error) {
 
 	return float64(-withdrawnSum.Int64) / 100, nil
 }
+
+func (db *DBContext) GerUserWithdrawnHistory(userId int64) ([]models.WithdrawHistoryResponse, error) {
+	query := `
+		SELECT order_number, accrual, uploaded_at
+		FROM orders
+		WHERE user_id = $1 and status = $2 and accrual < 0;`
+
+	var withdrawHistory []models.WithdrawHistoryResponse
+	rows, err := db.db.Query(query, userId, models.PROCESSED)
+	defer rows.Close()
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		utils.Log.Error("error get rows withdrawn history: ", err.Error())
+		return nil, err
+	}
+
+	for rows.Next() {
+		var withdraw models.WithdrawHistoryResponse
+		var sum int64
+		var uploadedAt time.Time
+		err := rows.Scan(&withdraw.Order, &sum, &uploadedAt)
+		if err != nil {
+			utils.Log.Error("error get withdrawn history: ", err.Error())
+			return nil, err
+		}
+		withdraw.Sum = float64(-sum) / 100
+		withdraw.ProcessedAt = uploadedAt.Format(time.RFC3339)
+		withdrawHistory = append(withdrawHistory, withdraw)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		utils.Log.Error(err)
+		return nil, err
+	}
+
+	return withdrawHistory, nil
+}

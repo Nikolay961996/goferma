@@ -19,7 +19,6 @@ import (
 */
 func registerHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		utils.Log.Info("registerHandler")
 		authHandler(db, secretKey, w, r, true)
 	}
 }
@@ -32,7 +31,6 @@ func registerHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 */
 func loginHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		utils.Log.Info("loginHandler")
 		authHandler(db, secretKey, w, r, false)
 	}
 }
@@ -48,7 +46,6 @@ func loginHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 */
 func setOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		utils.Log.Info("setOrdersHandler")
 		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
 		if err != nil {
 			errorHandler(err, w)
@@ -79,7 +76,6 @@ func setOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc 
 */
 func getOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		utils.Log.Info("getOrdersHandler")
 		w.Header().Set("Content-Type", "application/json")
 		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
 		if err != nil {
@@ -107,7 +103,6 @@ func getOrdersHandler(db *storage.DBContext, secretKey string) http.HandlerFunc 
 */
 func getBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		utils.Log.Info("getBalanceHandler")
 		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
 		if err != nil {
 			errorHandler(err, w)
@@ -132,7 +127,6 @@ func getBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc
 */
 func withdrawBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		utils.Log.Info("withdrawBalanceHandler")
 		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
 		if err != nil {
 			errorHandler(err, w)
@@ -152,9 +146,30 @@ func withdrawBalanceHandler(db *storage.DBContext, secretKey string) http.Handle
 	}
 }
 
-func showWithdrawalsBalanceHandler(w http.ResponseWriter, r *http.Request) {
-	utils.Log.Info("showWithdrawalsBalanceHandler")
-
+/*
+200 — успешная обработка запроса.
+204 — нет ни одного списания.
+401 — пользователь не авторизован.
+500 — внутренняя ошибка сервера.
+*/
+func showWithdrawalsBalanceHandler(db *storage.DBContext, secretKey string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userId, err := services.GetUserID(r.Header.Get("Authorization"), secretKey)
+		if err != nil {
+			errorHandler(err, w)
+			return
+		}
+		withdrawnHistory, err := db.GerUserWithdrawnHistory(userId)
+		if err != nil {
+			errorHandler(err, w)
+			return
+		}
+		if withdrawnHistory == nil {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		writeToResponse(w, withdrawnHistory)
+	}
 }
 
 func authHandler(db *storage.DBContext, secretKey string, w http.ResponseWriter, r *http.Request, isRegistration bool) {
