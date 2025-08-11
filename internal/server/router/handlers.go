@@ -56,7 +56,7 @@ func setOrdersHandler(db *storage.DBContext) http.HandlerFunc {
 			return
 		}
 
-		createdNew, err := services.RegisterOrder(db, orderNumber, userID, models.NEW, 0)
+		createdNew, err := services.RegisterOrder(db, orderNumber, userID, models.New, 0)
 		if err != nil {
 			errorHandler(err, w)
 			return

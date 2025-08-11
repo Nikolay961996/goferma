@@ -53,7 +53,8 @@ func RunWorker(workerId int, db *storage.DBContext, done context.Context, jobs <
 				utils.Log.Info("Order", job.Order.Number, "status is not changed. New status=", loyaltyStatus)
 				continue
 			}
-			updateOrder(db, job.Order.Id, loyalty.Accrual, newStatus)
+			updateOrder(db, job.Order.ID, loyalty.Accrual, newStatus)
+			utils.Log.Warn("Worker ", workerId, " is update ", job.Order.Number, " status ", newStatus, ", sum= ", loyalty.Accrual)
 
 		case <-done.Done():
 			utils.Log.Info("WorkerDistributor done")
@@ -100,14 +101,14 @@ func updateOrder(db *storage.DBContext, orderId int64, accrual float64, newStatu
 func loyaltyStatusToOrderStatus(loyaltyStatus loyaltyStatus) models.OrderStatus {
 	switch loyaltyStatus {
 	case registered:
-		return models.NEW
+		return models.New
 	case processing:
-		return models.PROCESSING
+		return models.Processing
 	case processed:
-		return models.PROCESSED
+		return models.Processed
 	case invalid:
-		return models.INVALID
+		return models.Invalid
 	}
 	utils.Log.Error("Unknown loyalty status. ", loyaltyStatus, " Set as invalid")
-	return models.INVALID
+	return models.Invalid
 }

@@ -9,10 +9,10 @@ const (
 type OrderStatus int
 
 const (
-	NEW OrderStatus = iota
-	PROCESSING
-	INVALID
-	PROCESSED
+	New OrderStatus = iota
+	Processing
+	Invalid
+	Processed
 )
 
 func (s OrderStatus) String() string {

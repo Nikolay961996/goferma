@@ -133,7 +133,7 @@ func (db *DBContext) GerUserCurrentAccrual(userId int64) (float64, error) {
 		FROM orders
 		WHERE user_id = $1 and status = $2;`
 	var accrualSum sql.NullInt64
-	err := db.db.QueryRow(query, userId, models.PROCESSED).Scan(&accrualSum)
+	err := db.db.QueryRow(query, userId, models.Processed).Scan(&accrualSum)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -154,7 +154,7 @@ func (db *DBContext) GerUserWithdrawn(userId int64) (float64, error) {
 		FROM orders
 		WHERE user_id = $1 and status = $2 and accrual < 0;`
 	var withdrawnSum sql.NullInt64
-	err := db.db.QueryRow(query, userId, models.PROCESSED).Scan(&withdrawnSum)
+	err := db.db.QueryRow(query, userId, models.Processed).Scan(&withdrawnSum)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -176,7 +176,7 @@ func (db *DBContext) GerUserWithdrawnHistory(userId int64) ([]models.WithdrawHis
 		WHERE user_id = $1 and status = $2 and accrual < 0;`
 
 	var withdrawHistory []models.WithdrawHistoryResponse
-	rows, err := db.db.Query(query, userId, models.PROCESSED)
+	rows, err := db.db.Query(query, userId, models.Processed)
 	defer rows.Close()
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -216,7 +216,7 @@ func (db *DBContext) GerUnprocessedOrders() ([]models.Order, error) {
 		WHERE NOT (status = ANY($1));`
 
 	var orders []models.Order
-	rows, err := db.db.Query(query, pq.Array([]models.OrderStatus{models.PROCESSED, models.INVALID}))
+	rows, err := db.db.Query(query, pq.Array([]models.OrderStatus{models.Processed, models.Invalid}))
 	defer rows.Close()
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -228,7 +228,7 @@ func (db *DBContext) GerUnprocessedOrders() ([]models.Order, error) {
 
 	for rows.Next() {
 		var order models.Order
-		err := rows.Scan(&order.Id, &order.Number, &order.CurrentStatus)
+		err := rows.Scan(&order.ID, &order.Number, &order.CurrentStatus)
 		if err != nil {
 			utils.Log.Error("error get unprocessed orders: ", err.Error())
 			return nil, err
