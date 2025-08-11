@@ -123,7 +123,6 @@ func getBalanceHandler(db *storage.DBContext) http.HandlerFunc {
 */
 func withdrawBalanceHandler(db *storage.DBContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		userID := getUserID(w, r)
 		if userID == 0 {
 			return
@@ -149,6 +148,7 @@ func withdrawBalanceHandler(db *storage.DBContext) http.HandlerFunc {
 */
 func showWithdrawalsBalanceHandler(db *storage.DBContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		userID := getUserID(w, r)
 		if userID == 0 {
 			return
