@@ -15,8 +15,8 @@ type Config struct {
 
 func NewConfig() *Config {
 	c := &Config{}
-	c.parseFlags()
 	c.parseEnv()
+	c.parseFlags()
 	c.check()
 
 	return c
@@ -34,6 +34,7 @@ func (c *Config) parseFlags() {
 		utils.Log.Fatal("To many args!")
 	}
 	utils.Log.Info("Address from flag: ", c.runAddress)
+	utils.Log.Info("Database from flag: ", c.databaseUri)
 }
 
 func (c *Config) parseEnv() {
