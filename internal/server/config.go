@@ -15,15 +15,16 @@ type Config struct {
 
 func NewConfig() *Config {
 	c := &Config{}
-	c.parseEnv()
 	c.parseFlags()
+	c.parseEnv()
 	c.check()
 
 	return c
 }
 
 func (c *Config) parseFlags() {
-	flag.StringVar(&c.runAddress, "a", "localhost:8080", "Run address")
+	//flag.StringVar(&c.runAddress, "a", "localhost:8080", "Run address")
+	c.runAddress = *flag.String("a", "", "Run address")
 	flag.StringVar(&c.databaseUri, "d", "", "Database address")
 	flag.StringVar(&c.accrualSystemAddress, "r", "", "Accrual system address")
 	flag.StringVar(&c.secretKey, "k", "MY_SUPER_SECRET_KEY", "Secret key for signing")
