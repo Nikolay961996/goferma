@@ -51,14 +51,14 @@ func (c *Config) parseEnv() {
 		utils.Log.Fatal(err)
 	}
 
+	utils.Log.Info("Address from env: ", envConfig.runAddress)
+	utils.Log.Info("Database from env: ", envConfig.databaseUri)
+
 	if envConfig.runAddress != "" {
 		c.runAddress = envConfig.runAddress
-		utils.Log.Info("Address from env: ", c.runAddress)
 	}
 	if envConfig.databaseUri != "" {
 		c.databaseUri = envConfig.databaseUri
-		utils.Log.Info("Database from env: ", c.databaseUri)
-
 	}
 	if envConfig.accrualSystemAddress != "" {
 		c.accrualSystemAddress = envConfig.accrualSystemAddress
