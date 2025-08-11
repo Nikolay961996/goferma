@@ -22,19 +22,6 @@ func (db *DBContext) CreateNewUser(login string, pswHash string) error {
 	return nil
 }
 
-func (db *DBContext) AddNewUser(login string, pswHash string) error {
-	query := `
-		INSERT INTO users (login, password_hash)
-		VALUES ($1, $2);`
-	_, err := db.db.Exec(query, login, pswHash)
-	if err != nil {
-		utils.Log.Error("error insert new user: ", err.Error())
-		return err
-	}
-
-	return nil
-}
-
 func (db *DBContext) GetUser(login string) (*models.User, error) {
 	query := `
 		SELECT id, login, password_hash

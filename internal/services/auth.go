@@ -53,7 +53,7 @@ func CreateUser(db *storage.DBContext, login string, password string) error {
 	}
 
 	pswHash := getPasswordHash(password)
-	err = db.AddNewUser(login, pswHash)
+	err = db.CreateNewUser(login, pswHash)
 	if err != nil {
 		utils.Log.Error(err.Error())
 		return err
