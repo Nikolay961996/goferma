@@ -24,7 +24,7 @@ func GetOrderNumber(contentType string, body io.ReadCloser) (string, error) {
 	}
 	number = strings.ReplaceAll(number, " ", "")
 	if !isCorrectOrderNumber(number) {
-		utils.Log.Error(errors.New(fmt.Sprintf("order number is incorrect. '%s'", number)))
+		utils.Log.Error(fmt.Errorf("order number is incorrect. '%s'", number))
 		return "", &models.IncorrectInputError{Err: errors.New("order number is incorrect")}
 	}
 

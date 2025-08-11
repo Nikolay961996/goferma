@@ -49,7 +49,7 @@ func CreateUser(db *storage.DBContext, login string, password string) error {
 	}
 	if user != nil {
 		utils.Log.Error("User this login already exist", login)
-		return &models.AlreadyExistError{Err: errors.New(fmt.Sprintf("user this '%s' already exist", login))}
+		return &models.AlreadyExistError{Err: fmt.Errorf("user this '%s' already exist", login)}
 	}
 
 	pswHash := getPasswordHash(password)
@@ -66,15 +66,13 @@ func AuthUser(db *storage.DBContext, secretKey string, login string, password st
 	user, err := db.GetUser(login)
 	if err != nil {
 		utils.Log.Error(err.Error())
-		if user == nil {
-		}
 		return "", err
 	}
 
 	pswHash := getPasswordHash(password)
 	if user == nil || user.PasswordHash != pswHash {
 		utils.Log.Error("user not found")
-		return "", &models.LoginPasswordError{Err: errors.New(fmt.Sprintf("user this login/password '%s' does not exist", login))}
+		return "", &models.LoginPasswordError{Err: fmt.Errorf("user this login/password '%s' does not exist", login)}
 	}
 
 	token, err := buildJWTToken(user.ID, secretKey)
