@@ -23,7 +23,7 @@ func NewConfig() *Config {
 }
 
 func (c *Config) parseFlags() {
-	flag.StringVar(&c.runAddress, "a", "", "Run address")
+	flag.StringVar(&c.runAddress, "a", "localhost:8080", "Run address")
 	flag.StringVar(&c.databaseUri, "d", "", "Database address")
 	flag.StringVar(&c.accrualSystemAddress, "r", "", "Accrual system address")
 	flag.StringVar(&c.secretKey, "k", "MY_SUPER_SECRET_KEY", "Secret key for signing")
