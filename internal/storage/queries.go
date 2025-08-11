@@ -250,7 +250,7 @@ func (db *DBContext) UpdateOrder(orderId int64, newStatus models.OrderStatus, ac
 			status = $1,
 			accrual = $2
 		WHERE id = $3;`
-	_, err := db.db.Exec(query, newStatus, accrual, orderId)
+	_, err := db.db.Exec(query, newStatus, int64(accrual*100), orderId)
 	if err != nil {
 		utils.Log.Error("error update order: ", err.Error())
 		return err
