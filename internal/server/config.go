@@ -25,7 +25,7 @@ func NewConfig() *Config {
 }
 
 func (c *Config) parseFlags() {
-	flag.StringVar(&c.runAddress, "a", "", "Run address")
+	flag.StringVar(&c.runAddress, "a", "localhost:8080", "Run address")
 	flag.StringVar(&c.databaseUri, "d", "", "Database address")
 	flag.StringVar(&c.accrualSystemAddress, "r", "", "Accrual system address")
 	flag.StringVar(&c.secretKey, "k", "MY_SUPER_SECRET_KEY", "Secret key for signing")
@@ -44,10 +44,10 @@ func (c *Config) parseFlags() {
 
 func (c *Config) parseEnv() {
 	var envConfig struct {
-		runAddress           string `env:"RUN_ADDRESS"`
-		databaseUri          string `env:"DATABASE_URI"`
-		accrualSystemAddress string `env:"ACCRUAL_SYSTEM_ADDRESS"`
-		secretKey            string `env:"SIGNING_SECRET_KEY"`
+		RunAddress           string `env:"RUN_ADDRESS"`
+		DatabaseUri          string `env:"DATABASE_URI"`
+		AccrualSystemAddress string `env:"ACCRUAL_SYSTEM_ADDRESS"`
+		SecretKey            string `env:"SIGNING_SECRET_KEY"`
 	}
 
 	err := env.Parse(&envConfig)
@@ -55,23 +55,23 @@ func (c *Config) parseEnv() {
 		utils.Log.Fatal(err)
 	}
 
-	utils.Log.Info("Address from env: ", envConfig.runAddress)
-	utils.Log.Info("Database from env: ", envConfig.databaseUri)
+	utils.Log.Info("Address from env: ", envConfig.RunAddress)
+	utils.Log.Info("Database from env: ", envConfig.DatabaseUri)
 
 	test := os.Getenv("DATABASE_URI")
 	utils.Log.Info("test: ", test)
 
-	if envConfig.runAddress != "" {
-		c.runAddress = envConfig.runAddress
+	if envConfig.RunAddress != "" {
+		c.runAddress = envConfig.RunAddress
 	}
-	if envConfig.databaseUri != "" {
-		c.databaseUri = envConfig.databaseUri
+	if envConfig.DatabaseUri != "" {
+		c.databaseUri = envConfig.DatabaseUri
 	}
-	if envConfig.accrualSystemAddress != "" {
-		c.accrualSystemAddress = envConfig.accrualSystemAddress
+	if envConfig.AccrualSystemAddress != "" {
+		c.accrualSystemAddress = envConfig.AccrualSystemAddress
 	}
-	if envConfig.secretKey != "" {
-		c.secretKey = envConfig.secretKey
+	if envConfig.SecretKey != "" {
+		c.secretKey = envConfig.SecretKey
 	}
 }
 
