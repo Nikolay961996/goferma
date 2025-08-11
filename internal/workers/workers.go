@@ -13,7 +13,7 @@ import (
 )
 
 func CreateWorkerDistributor(db *storage.DBContext, done context.Context) <-chan job {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(100 * time.Millisecond)
 	out := make(chan job, 10)
 
 	go func() {

@@ -120,7 +120,7 @@ func getPasswordHash(password string) string {
 func buildJWTToken(userID int64, secretKey string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(models.JWT_EXPIRE_TIME)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(models.JWTExpireTime)),
 		},
 		UserID: userID,
 	})

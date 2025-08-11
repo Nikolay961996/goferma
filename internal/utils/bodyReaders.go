@@ -24,5 +24,5 @@ func ReadPlainTextBody(body io.ReadCloser) (string, error) {
 		Log.Error("read text body err: ", err)
 		return "", err
 	}
-	return string(buf.Bytes()), nil
+	return buf.String(), nil
 }

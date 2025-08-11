@@ -14,11 +14,11 @@ import (
 func Run(config *Config) {
 	utils.Log.Info("Server run on ", config.runAddress)
 
-	done, cancel := context.WithCancel(context.Background())
+	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	dbContext := storage.NewDBStorage(config.databaseUri)
-	go runWorkers(dbContext, done, config.accrualSystemAddress)
+	//go runWorkers(dbContext, done, config.accrualSystemAddress)
 
 	err := http.ListenAndServe(fixProtocolPrefixAddress(config.runAddress), router.GofermaRouter(dbContext, config.secretKey))
 	if err != nil {
