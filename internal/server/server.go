@@ -17,7 +17,7 @@ func Run(config *Config) {
 	done, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dbContext := storage.NewDBStorage(config.databaseUri)
+	dbContext := storage.NewDBStorage(config.databaseURI)
 	go runWorkers(dbContext, done, config.accrualSystemAddress)
 
 	err := http.ListenAndServe(fixProtocolPrefixAddress(config.runAddress), router.GofermaRouter(dbContext, config.secretKey))

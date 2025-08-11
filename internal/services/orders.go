@@ -32,12 +32,12 @@ func GetOrderNumber(contentType string, body io.ReadCloser) (string, error) {
 }
 
 func RegisterOrder(db *storage.DBContext, orderNumber string, userID int64, status models.OrderStatus, accrual float64) (bool, error) {
-	orderUserId, err := db.GetUserForOrder(orderNumber)
+	orderUserID, err := db.GetUserForOrder(orderNumber)
 	if err != nil {
 		return false, err
 	}
 
-	if orderUserId == 0 {
+	if orderUserID == 0 {
 		err = db.SetUserOrder(userID, orderNumber, status, accrual)
 		if err != nil {
 			return false, err
@@ -45,7 +45,7 @@ func RegisterOrder(db *storage.DBContext, orderNumber string, userID int64, stat
 		return true, nil
 	}
 
-	if orderUserId != userID {
+	if orderUserID != userID {
 		return false, &models.AlreadyExistError{Err: errors.New("already used order number by other user")}
 	}
 

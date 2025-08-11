@@ -10,7 +10,7 @@ import (
 
 type Config struct {
 	runAddress           string
-	databaseUri          string
+	databaseURI          string
 	accrualSystemAddress string
 	secretKey            string
 }
@@ -26,7 +26,7 @@ func NewConfig() *Config {
 
 func (c *Config) parseFlags() {
 	flag.StringVar(&c.runAddress, "a", "localhost:8080", "Run address")
-	flag.StringVar(&c.databaseUri, "d", "", "Database address")
+	flag.StringVar(&c.databaseURI, "d", "", "Database address")
 	flag.StringVar(&c.accrualSystemAddress, "r", "", "Accrual system address")
 	flag.StringVar(&c.secretKey, "k", "MY_SUPER_SECRET_KEY", "Secret key for signing")
 
@@ -39,7 +39,7 @@ func (c *Config) parseFlags() {
 		utils.Log.Fatal("To many args!")
 	}
 	utils.Log.Info("Address from flag: ", c.runAddress)
-	utils.Log.Info("Database from flag: ", c.databaseUri)
+	utils.Log.Info("Database from flag: ", c.databaseURI)
 }
 
 func (c *Config) parseEnv() {
@@ -65,7 +65,7 @@ func (c *Config) parseEnv() {
 		c.runAddress = envConfig.RunAddress
 	}
 	if envConfig.DatabaseUri != "" {
-		c.databaseUri = envConfig.DatabaseUri
+		c.databaseURI = envConfig.DatabaseUri
 	}
 	if envConfig.AccrualSystemAddress != "" {
 		c.accrualSystemAddress = envConfig.AccrualSystemAddress
@@ -79,7 +79,7 @@ func (c *Config) check() {
 	if c.runAddress == "" {
 		utils.Log.Fatal("Run address is required")
 	}
-	if c.databaseUri == "" {
+	if c.databaseURI == "" {
 		utils.Log.Fatal("Database address is required")
 	}
 	if c.accrualSystemAddress == "" {

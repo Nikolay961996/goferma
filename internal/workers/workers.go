@@ -40,8 +40,8 @@ func CreateWorkerDistributor(db *storage.DBContext, done context.Context) <-chan
 	return out
 }
 
-func RunWorker(workerId int, db *storage.DBContext, done context.Context, jobs <-chan job, loyaltyAddress string) {
-	utils.Log.Info("Starting worker", workerId)
+func RunWorker(workerID int, db *storage.DBContext, done context.Context, jobs <-chan job, loyaltyAddress string) {
+	utils.Log.Info("Starting worker", workerID)
 
 	for {
 		select {
@@ -54,7 +54,7 @@ func RunWorker(workerId int, db *storage.DBContext, done context.Context, jobs <
 				continue
 			}
 			updateOrder(db, job.Order.ID, loyalty.Accrual, newStatus)
-			utils.Log.Warn("Worker ", workerId, " is update ", job.Order.Number, " status ", newStatus, ", sum= ", loyalty.Accrual)
+			utils.Log.Warn("Worker ", workerID, " is update ", job.Order.Number, " status ", newStatus, ", sum= ", loyalty.Accrual)
 
 		case <-done.Done():
 			utils.Log.Info("WorkerDistributor done")
@@ -91,8 +91,8 @@ func sendToLoyalty(loyaltyAddress string, orderNumber string) *loyaltyResponse {
 	return &data
 }
 
-func updateOrder(db *storage.DBContext, orderId int64, accrual float64, newStatus models.OrderStatus) {
-	err := db.UpdateOrder(orderId, newStatus, accrual)
+func updateOrder(db *storage.DBContext, orderID int64, accrual float64, newStatus models.OrderStatus) {
+	err := db.UpdateOrder(orderID, newStatus, accrual)
 	if err != nil {
 		utils.Log.Error(err.Error())
 	}

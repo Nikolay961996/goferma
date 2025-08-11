@@ -232,13 +232,13 @@ func (db *DBContext) GerUnprocessedOrders() ([]models.Order, error) {
 	return orders, nil
 }
 
-func (db *DBContext) UpdateOrder(orderId int64, newStatus models.OrderStatus, accrual float64) error {
+func (db *DBContext) UpdateOrder(orderID int64, newStatus models.OrderStatus, accrual float64) error {
 	query := `
 		UPDATE orders SET
 			status = $1,
 			accrual = $2
 		WHERE id = $3;`
-	_, err := db.db.Exec(query, newStatus, int64(accrual*100), orderId)
+	_, err := db.db.Exec(query, newStatus, int64(accrual*100), orderID)
 	if err != nil {
 		utils.Log.Error("error update order: ", err.Error())
 		return err

@@ -251,5 +251,4 @@ func errorHandler(err error, w http.ResponseWriter) {
 
 	utils.Log.Error("internal error: ", err.Error())
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	return
 }
