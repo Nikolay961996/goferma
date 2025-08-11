@@ -2,6 +2,7 @@ package server
 
 import (
 	"flag"
+	"fmt"
 	"github.com/Nikolay961996/goferma/internal/utils"
 	"github.com/caarlos0/env/v6"
 	"os"
@@ -30,6 +31,9 @@ func (c *Config) parseFlags() {
 	flag.StringVar(&c.secretKey, "k", "MY_SUPER_SECRET_KEY", "Secret key for signing")
 
 	flag.Parse()
+	flag.VisitAll(func(f *flag.Flag) {
+		utils.Log.Info(fmt.Sprintf("  -%s: %v (default: %v)\n", f.Name, f.Value, f.DefValue))
+	})
 
 	if flag.NArg() > 0 {
 		utils.Log.Fatal("To many args!")
