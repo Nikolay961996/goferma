@@ -19,7 +19,7 @@ func Run(config *Config) {
 	dbContext := storage.NewDBStorage(config.databaseUri)
 	runWorkers(dbContext, done, config.accrualSystemAddress)
 
-	err := http.ListenAndServe(fixProtocolPrefixAddress(config.runAddress), router.GofermaRouter(dbContext, config.secretKey))
+	err := http.ListenAndServe(config.runAddress, router.GofermaRouter(dbContext, config.secretKey))
 	if err != nil {
 		utils.Log.Fatal("Can't start server: ", err)
 	}

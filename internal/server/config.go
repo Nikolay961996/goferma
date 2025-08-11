@@ -33,6 +33,7 @@ func (c *Config) parseFlags() {
 	if flag.NArg() > 0 {
 		utils.Log.Fatal("To many args!")
 	}
+	utils.Log.Info("Address from flag: ", c.runAddress)
 }
 
 func (c *Config) parseEnv() {
@@ -50,6 +51,7 @@ func (c *Config) parseEnv() {
 
 	if envConfig.runAddress != "" {
 		c.runAddress = envConfig.runAddress
+		utils.Log.Info("Address from env: ", c.runAddress)
 	}
 	if envConfig.databaseUri != "" {
 		c.databaseUri = envConfig.databaseUri
