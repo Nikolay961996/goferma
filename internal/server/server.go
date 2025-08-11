@@ -8,6 +8,7 @@ import (
 	"github.com/Nikolay961996/goferma/internal/workers"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func Run(config *Config) {
@@ -17,15 +18,17 @@ func Run(config *Config) {
 	defer cancel()
 
 	dbContext := storage.NewDBStorage(config.databaseUri)
-	runWorkers(dbContext, done, config.accrualSystemAddress)
+	go runWorkers(dbContext, done, config.accrualSystemAddress)
 
-	err := http.ListenAndServe(config.runAddress, router.GofermaRouter(dbContext, config.secretKey))
+	err := http.ListenAndServe(fixProtocolPrefixAddress(config.runAddress), router.GofermaRouter(dbContext, config.secretKey))
 	if err != nil {
 		utils.Log.Fatal("Can't start server: ", err)
 	}
 }
 
 func runWorkers(db *storage.DBContext, done context.Context, loyaltyAddress string) {
+	time.Sleep(1 * time.Second)
+	utils.Log.Info("starting workers")
 	out := workers.CreateWorkerDistributor(db, done)
 	for i := 0; i < 5; i++ {
 		go workers.RunWorker(i, db, done, out, loyaltyAddress)
