@@ -75,6 +75,7 @@ func (db *DBContext) SetUserOrder(userId int64, orderNumber string, status model
 		INSERT INTO orders (user_id, order_number, accrual, status, uploaded_at)
 		VALUES ($1, $2, $3, $4, $5);`
 	_, err := db.db.Exec(query, userId, orderNumber, int64(accrual*100), status, time.Now())
+	utils.Log.Warn("SetUserOrder: ", orderNumber, " = ", int64(accrual*100), ", status ", status)
 	if err != nil {
 		utils.Log.Error("error insert new order for user: ", err.Error())
 		return err
