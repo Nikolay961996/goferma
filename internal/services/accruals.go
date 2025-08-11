@@ -67,7 +67,7 @@ func Withdrawn(db *storage.DBContext, userId int64, withdrawn float64, orderNumb
 		utils.Log.Error(fmt.Sprintf("Not enoth accrual. Current %f, userId %d", accrual, userId))
 		return &models.NotEnoughError{Err: errors.New(fmt.Sprintf("Not enoth accrual. Current %f, userId %d", accrual, userId))}
 	}
-	createdNew, err := RegisterOrder(db, orderNumber, userId, models.Processed, withdrawn)
+	createdNew, err := RegisterOrder(db, orderNumber, userId, models.Processed, -withdrawn)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("Error register order for user id %d", userId))
 		return err
