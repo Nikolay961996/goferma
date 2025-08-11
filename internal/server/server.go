@@ -5,6 +5,7 @@ import (
 	"github.com/Nikolay961996/goferma/internal/server/router"
 	"github.com/Nikolay961996/goferma/internal/storage"
 	"github.com/Nikolay961996/goferma/internal/utils"
+	"github.com/Nikolay961996/goferma/internal/workers"
 	"net/http"
 	"strings"
 	"time"
@@ -28,10 +29,10 @@ func Run(config *Config) {
 func runWorkers(db *storage.DBContext, done context.Context, loyaltyAddress string) {
 	time.Sleep(1 * time.Second)
 	utils.Log.Info("starting workers")
-	//out := workers.CreateWorkerDistributor(db, done)
-	//for i := 0; i < 5; i++ {
-	//	go workers.RunWorker(i, db, done, out, loyaltyAddress)
-	//}
+	out := workers.CreateWorkerDistributor(db, done)
+	for i := 0; i < 5; i++ {
+		go workers.RunWorker(i, db, done, out, loyaltyAddress)
+	}
 }
 
 func fixProtocolPrefixAddress(addr string) string {
