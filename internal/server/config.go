@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/Nikolay961996/goferma/internal/utils"
 	"github.com/caarlos0/env/v6"
+	"os"
 )
 
 type Config struct {
@@ -23,8 +24,7 @@ func NewConfig() *Config {
 }
 
 func (c *Config) parseFlags() {
-	//flag.StringVar(&c.runAddress, "a", "localhost:8080", "Run address")
-	c.runAddress = *flag.String("a", "", "Run address")
+	flag.StringVar(&c.runAddress, "a", "", "Run address")
 	flag.StringVar(&c.databaseUri, "d", "", "Database address")
 	flag.StringVar(&c.accrualSystemAddress, "r", "", "Accrual system address")
 	flag.StringVar(&c.secretKey, "k", "MY_SUPER_SECRET_KEY", "Secret key for signing")
@@ -53,6 +53,9 @@ func (c *Config) parseEnv() {
 
 	utils.Log.Info("Address from env: ", envConfig.runAddress)
 	utils.Log.Info("Database from env: ", envConfig.databaseUri)
+
+	test := os.Getenv("DATABASE_URI")
+	utils.Log.Info("test: ", test)
 
 	if envConfig.runAddress != "" {
 		c.runAddress = envConfig.runAddress
