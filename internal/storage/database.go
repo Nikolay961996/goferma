@@ -31,24 +31,24 @@ func NewDBStorage(databaseDSN string) *DBContext {
 	return &s
 }
 
-func (m *DBContext) open(databaseDSN string) {
-	db, err := sql.Open("pgx", databaseDSN)
+func (db *DBContext) open(databaseDSN string) {
+	dbContext, err := sql.Open("pgx", databaseDSN)
 	if err != nil {
 		utils.Log.Fatal("Db connection error: ", err)
 	}
-	m.db = db
-	m.databaseDSN = databaseDSN
+	db.db = dbContext
+	db.databaseDSN = databaseDSN
 }
 
-func (m *DBContext) migrate() {
+func (db *DBContext) migrate() {
 	migrateFunc := func() error {
-		driver, err := postgres.WithInstance(m.db, &postgres.Config{})
+		driver, err := postgres.WithInstance(db.db, &postgres.Config{})
 		if err != nil {
 			utils.Log.Fatal(fmt.Sprintf("migration driver creation error: %s", err.Error()))
 			return err
 		}
 
-		instance, err := migrate.NewWithDatabaseInstance("file://internal/storage/migrations", m.databaseDSN, driver)
+		instance, err := migrate.NewWithDatabaseInstance("file://internal/storage/migrations", db.databaseDSN, driver)
 		if err != nil {
 			utils.Log.Fatal(fmt.Sprintf("migration instance creation error: %s", err.Error()))
 			return err

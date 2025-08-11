@@ -45,7 +45,7 @@ func (c *Config) parseFlags() {
 func (c *Config) parseEnv() {
 	var envConfig struct {
 		RunAddress           string `env:"RUN_ADDRESS"`
-		DatabaseUri          string `env:"DATABASE_URI"`
+		DatabaseURI          string `env:"DATABASE_URI"`
 		AccrualSystemAddress string `env:"ACCRUAL_SYSTEM_ADDRESS"`
 		SecretKey            string `env:"SIGNING_SECRET_KEY"`
 	}
@@ -56,7 +56,7 @@ func (c *Config) parseEnv() {
 	}
 
 	utils.Log.Info("Address from env: ", envConfig.RunAddress)
-	utils.Log.Info("Database from env: ", envConfig.DatabaseUri)
+	utils.Log.Info("Database from env: ", envConfig.DatabaseURI)
 
 	test := os.Getenv("DATABASE_URI")
 	utils.Log.Info("test: ", test)
@@ -64,8 +64,8 @@ func (c *Config) parseEnv() {
 	if envConfig.RunAddress != "" {
 		c.runAddress = envConfig.RunAddress
 	}
-	if envConfig.DatabaseUri != "" {
-		c.databaseURI = envConfig.DatabaseUri
+	if envConfig.DatabaseURI != "" {
+		c.databaseURI = envConfig.DatabaseURI
 	}
 	if envConfig.AccrualSystemAddress != "" {
 		c.accrualSystemAddress = envConfig.AccrualSystemAddress

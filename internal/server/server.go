@@ -36,8 +36,7 @@ func runWorkers(db *storage.DBContext, done context.Context, loyaltyAddress stri
 }
 
 func fixProtocolPrefixAddress(addr string) string {
-	addr = strings.TrimLeft(addr, "http://")
-	addr = strings.TrimRight(addr, "/")
-
+	addr = strings.TrimPrefix(addr, "http://")
+	addr = strings.TrimSuffix(addr, "/")
 	return addr
 }
