@@ -57,6 +57,8 @@ func (c *Config) parseEnv() {
 	}
 	if envConfig.databaseUri != "" {
 		c.databaseUri = envConfig.databaseUri
+		utils.Log.Info("Database from env: ", c.databaseUri)
+
 	}
 	if envConfig.accrualSystemAddress != "" {
 		c.accrualSystemAddress = envConfig.accrualSystemAddress
