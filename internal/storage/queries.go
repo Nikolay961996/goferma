@@ -58,8 +58,8 @@ func (db *DBContext) GetUserForOrder(orderNumber string) (int64, error) {
 		SELECT user_id
 		FROM orders	
 		WHERE order_number = $1;`
-	var userId int64
-	err := db.db.QueryRow(query, orderNumber).Scan(&userId)
+	var userID int64
+	err := db.db.QueryRow(query, orderNumber).Scan(&userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -67,14 +67,14 @@ func (db *DBContext) GetUserForOrder(orderNumber string) (int64, error) {
 		utils.Log.Error("error get user order: ", err.Error())
 		return 0, err
 	}
-	return userId, nil
+	return userID, nil
 }
 
-func (db *DBContext) SetUserOrder(userId int64, orderNumber string, status models.OrderStatus, accrual float64) error {
+func (db *DBContext) SetUserOrder(userID int64, orderNumber string, status models.OrderStatus, accrual float64) error {
 	query := `
 		INSERT INTO orders (user_id, order_number, accrual, status, uploaded_at)
 		VALUES ($1, $2, $3, $4, $5);`
-	_, err := db.db.Exec(query, userId, orderNumber, int64(accrual*100), status, time.Now())
+	_, err := db.db.Exec(query, userID, orderNumber, int64(accrual*100), status, time.Now())
 	utils.Log.Warn("SetUserOrder: ", orderNumber, " = ", int64(accrual*100), ", status ", status)
 	if err != nil {
 		utils.Log.Error("error insert new order for user: ", err.Error())
@@ -84,15 +84,14 @@ func (db *DBContext) SetUserOrder(userId int64, orderNumber string, status model
 	return nil
 }
 
-func (db *DBContext) GetUserOrders(userId int64) ([]models.OrdersResponse, error) {
+func (db *DBContext) GetUserOrders(userID int64) ([]models.OrdersResponse, error) {
 	query := `
 		SELECT order_number, status, accrual, uploaded_at
 		FROM orders
 		WHERE user_id = $1;`
 
 	var orders []models.OrdersResponse
-	rows, err := db.db.Query(query, userId)
-	defer rows.Close()
+	rows, err := db.db.Query(query, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -100,6 +99,7 @@ func (db *DBContext) GetUserOrders(userId int64) ([]models.OrdersResponse, error
 		utils.Log.Error("error get rows userOrders: ", err.Error())
 		return nil, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var order models.OrdersResponse
@@ -127,13 +127,13 @@ func (db *DBContext) GetUserOrders(userId int64) ([]models.OrdersResponse, error
 	return orders, nil
 }
 
-func (db *DBContext) GerUserCurrentAccrual(userId int64) (float64, error) {
+func (db *DBContext) GerUserCurrentAccrual(userID int64) (float64, error) {
 	query := `
 		SELECT sum(accrual)
 		FROM orders
 		WHERE user_id = $1 and status = $2;`
 	var accrualSum sql.NullInt64
-	err := db.db.QueryRow(query, userId, models.Processed).Scan(&accrualSum)
+	err := db.db.QueryRow(query, userID, models.Processed).Scan(&accrualSum)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -148,13 +148,13 @@ func (db *DBContext) GerUserCurrentAccrual(userId int64) (float64, error) {
 	return float64(accrualSum.Int64) / 100, nil
 }
 
-func (db *DBContext) GerUserWithdrawn(userId int64) (float64, error) {
+func (db *DBContext) GerUserWithdrawn(userID int64) (float64, error) {
 	query := `
 		SELECT sum(accrual)
 		FROM orders
 		WHERE user_id = $1 and status = $2 and accrual < 0;`
 	var withdrawnSum sql.NullInt64
-	err := db.db.QueryRow(query, userId, models.Processed).Scan(&withdrawnSum)
+	err := db.db.QueryRow(query, userID, models.Processed).Scan(&withdrawnSum)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -169,15 +169,14 @@ func (db *DBContext) GerUserWithdrawn(userId int64) (float64, error) {
 	return float64(-withdrawnSum.Int64) / 100, nil
 }
 
-func (db *DBContext) GerUserWithdrawnHistory(userId int64) ([]models.WithdrawHistoryResponse, error) {
+func (db *DBContext) GerUserWithdrawnHistory(userID int64) ([]models.WithdrawHistoryResponse, error) {
 	query := `
 		SELECT order_number, accrual, uploaded_at
 		FROM orders
 		WHERE user_id = $1 and status = $2 and accrual < 0;`
 
 	var withdrawHistory []models.WithdrawHistoryResponse
-	rows, err := db.db.Query(query, userId, models.Processed)
-	defer rows.Close()
+	rows, err := db.db.Query(query, userID, models.Processed)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -185,6 +184,7 @@ func (db *DBContext) GerUserWithdrawnHistory(userId int64) ([]models.WithdrawHis
 		utils.Log.Error("error get rows withdrawn history: ", err.Error())
 		return nil, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var withdraw models.WithdrawHistoryResponse
@@ -217,7 +217,6 @@ func (db *DBContext) GerUnprocessedOrders() ([]models.Order, error) {
 
 	var orders []models.Order
 	rows, err := db.db.Query(query, pq.Array([]models.OrderStatus{models.Processed, models.Invalid}))
-	defer rows.Close()
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -225,6 +224,7 @@ func (db *DBContext) GerUnprocessedOrders() ([]models.Order, error) {
 		utils.Log.Error("error get rows unprocessed orders: ", err.Error())
 		return nil, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var order models.Order

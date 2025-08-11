@@ -31,21 +31,21 @@ func GetOrderNumber(contentType string, body io.ReadCloser) (string, error) {
 	return number, nil
 }
 
-func RegisterOrder(db *storage.DBContext, orderNumber string, userId int64, status models.OrderStatus, accrual float64) (bool, error) {
+func RegisterOrder(db *storage.DBContext, orderNumber string, userID int64, status models.OrderStatus, accrual float64) (bool, error) {
 	orderUserId, err := db.GetUserForOrder(orderNumber)
 	if err != nil {
 		return false, err
 	}
 
 	if orderUserId == 0 {
-		err = db.SetUserOrder(userId, orderNumber, status, accrual)
+		err = db.SetUserOrder(userID, orderNumber, status, accrual)
 		if err != nil {
 			return false, err
 		}
 		return true, nil
 	}
 
-	if orderUserId != userId {
+	if orderUserId != userID {
 		return false, &models.AlreadyExistError{Err: errors.New("already used order number by other user")}
 	}
 
