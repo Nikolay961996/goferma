@@ -12,7 +12,7 @@ import (
 
 func (db *DBContext) CreateNewUser(login string, pswHash string) error {
 	ctx := context.Background()
-	_, err := db.sqlInsertNewUser.Exec(ctx, login, pswHash)
+	_, err := db.sqlInsertNewUser.ExecContext(ctx, login, pswHash)
 	if err != nil {
 		utils.Log.Error("create user error ", err.Error())
 		return err
