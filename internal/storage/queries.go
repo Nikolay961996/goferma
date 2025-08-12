@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"github.com/Nikolay961996/goferma/internal/models"
@@ -10,10 +11,8 @@ import (
 )
 
 func (db *DBContext) CreateNewUser(login string, pswHash string) error {
-	query := `
-		INSERT INTO users (login, password_hash)
-		VALUES ($1, $2);`
-	_, err := db.db.Exec(query, login, pswHash)
+	ctx := context.Background()
+	_, err := db.sqlInsertNewUser.Exec(ctx, login, pswHash)
 	if err != nil {
 		utils.Log.Error("create user error ", err.Error())
 		return err

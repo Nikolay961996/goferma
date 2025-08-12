@@ -16,17 +16,14 @@ type DBContext struct {
 	db          *sql.DB
 	tx          *sql.Tx
 
-	sqlInsertOrUpdateGauge   *sql.Stmt
-	sqlInsertOrUpdateCounter *sql.Stmt
-	sqlGetGauge              *sql.Stmt
-	sqlGetCounter            *sql.Stmt
-	sqlGetAll                *sql.Stmt
+	sqlInsertNewUser *sql.Stmt
 }
 
 func NewDBStorage(databaseDSN string) *DBContext {
 	s := DBContext{}
 	s.open(databaseDSN)
 	s.migrate()
+	s.prepareSQL()
 
 	return &s
 }
@@ -65,4 +62,15 @@ func (db *DBContext) migrate() {
 	if err != nil {
 		utils.Log.Fatal(err.Error())
 	}
+}
+
+func (db *DBContext) prepareSQL() {
+	sqlInsertNewUser, err := db.db.Prepare(
+		`
+		INSERT INTO users (login, password_hash)
+		VALUES ($1, $2);`)
+	if err != nil {
+		utils.Log.Fatal(err.Error())
+	}
+	db.sqlInsertNewUser = sqlInsertNewUser
 }
