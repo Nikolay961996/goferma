@@ -79,6 +79,10 @@ func sendToLoyalty(loyaltyAddress string, orderNumber string) *loyaltyResponse {
 		var tooManyRequestsError *models.TooManyRequestsError
 		return errors.As(err, &tooManyRequestsError)
 	})
+	if err != nil {
+		utils.Log.Error(err.Error())
+		return nil
+	}
 
 	var data loyaltyResponse
 	err = json.Unmarshal(body, &data)
