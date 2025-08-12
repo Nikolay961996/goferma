@@ -22,6 +22,10 @@ type NotEnoughError struct {
 	Err error
 }
 
+type TooManyRequestsError struct {
+	Err error
+}
+
 func (fe *FormatError) Error() string {
 	return fmt.Sprintf("Format error [%s]", fe.Err)
 }
@@ -40,4 +44,8 @@ func (fe *IncorrectInputError) Error() string {
 
 func (fe *NotEnoughError) Error() string {
 	return fmt.Sprintf("Not enough error [%s]", fe.Err)
+}
+
+func (fe *TooManyRequestsError) Error() string {
+	return fmt.Sprintf("too many requests error [%s]", fe.Err)
 }
