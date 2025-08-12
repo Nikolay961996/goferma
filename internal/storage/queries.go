@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"github.com/Nikolay961996/goferma/internal/models"
@@ -10,10 +11,8 @@ import (
 )
 
 func (db *DBContext) CreateNewUser(login string, pswHash string) error {
-	query := `
-		INSERT INTO users (login, password_hash)
-		VALUES ($1, $2);`
-	_, err := db.db.Exec(query, login, pswHash)
+	ctx := context.Background()
+	_, err := db.sqlInsertNewUser.ExecContext(ctx, login, pswHash)
 	if err != nil {
 		utils.Log.Error("create user error ", err.Error())
 		return err
@@ -23,12 +22,9 @@ func (db *DBContext) CreateNewUser(login string, pswHash string) error {
 }
 
 func (db *DBContext) GetUser(login string) (*models.User, error) {
-	query := `
-		SELECT id, login, password_hash
-		FROM users	
-		WHERE login = $1;`
 	var user models.User
-	err := db.db.QueryRow(query, login).Scan(&user.ID, &user.Login, &user.PasswordHash)
+	ctx := context.Background()
+	err := db.sqlSelectUserByLogin.QueryRow(ctx, login).Scan(&user.ID, &user.Login, &user.PasswordHash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -41,12 +37,9 @@ func (db *DBContext) GetUser(login string) (*models.User, error) {
 }
 
 func (db *DBContext) GetUserForOrder(orderNumber string) (int64, error) {
-	query := `
-		SELECT user_id
-		FROM orders	
-		WHERE order_number = $1;`
 	var userID int64
-	err := db.db.QueryRow(query, orderNumber).Scan(&userID)
+	ctx := context.Background()
+	err := db.sqlSelectUserIDByOrderNumber.QueryRow(ctx, orderNumber).Scan(&userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -58,10 +51,8 @@ func (db *DBContext) GetUserForOrder(orderNumber string) (int64, error) {
 }
 
 func (db *DBContext) SetUserOrder(userID int64, orderNumber string, status models.OrderStatus, accrual float64) error {
-	query := `
-		INSERT INTO orders (user_id, order_number, accrual, status, uploaded_at)
-		VALUES ($1, $2, $3, $4, $5);`
-	_, err := db.db.Exec(query, userID, orderNumber, int64(accrual*100), status, time.Now())
+	ctx := context.Background()
+	_, err := db.sqlInsertNewOrder.Exec(ctx, userID, orderNumber, int64(accrual*100), status, time.Now())
 	utils.Log.Warn("SetUserOrder: ", orderNumber, " = ", int64(accrual*100), ", status ", status)
 	if err != nil {
 		utils.Log.Error("error insert new order for user: ", err.Error())
@@ -72,13 +63,9 @@ func (db *DBContext) SetUserOrder(userID int64, orderNumber string, status model
 }
 
 func (db *DBContext) GetUserOrders(userID int64) ([]models.OrdersResponse, error) {
-	query := `
-		SELECT order_number, status, accrual, uploaded_at
-		FROM orders
-		WHERE user_id = $1;`
-
+	ctx := context.Background()
 	var orders []models.OrdersResponse
-	rows, err := db.db.Query(query, userID)
+	rows, err := db.sqlSelectOrderByUserID.Query(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -115,12 +102,9 @@ func (db *DBContext) GetUserOrders(userID int64) ([]models.OrdersResponse, error
 }
 
 func (db *DBContext) GerUserCurrentAccrual(userID int64) (float64, error) {
-	query := `
-		SELECT sum(accrual)
-		FROM orders
-		WHERE user_id = $1 and status = $2;`
+	ctx := context.Background()
 	var accrualSum sql.NullInt64
-	err := db.db.QueryRow(query, userID, models.Processed).Scan(&accrualSum)
+	err := db.sqlSelectAccrualSum.QueryRow(ctx, userID, models.Processed).Scan(&accrualSum)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -136,12 +120,9 @@ func (db *DBContext) GerUserCurrentAccrual(userID int64) (float64, error) {
 }
 
 func (db *DBContext) GerUserWithdrawn(userID int64) (float64, error) {
-	query := `
-		SELECT sum(accrual)
-		FROM orders
-		WHERE user_id = $1 and status = $2 and accrual < 0;`
+	ctx := context.Background()
 	var withdrawnSum sql.NullInt64
-	err := db.db.QueryRow(query, userID, models.Processed).Scan(&withdrawnSum)
+	err := db.sqlSelectWithdrawnSum.QueryRow(ctx, userID, models.Processed).Scan(&withdrawnSum)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -157,13 +138,9 @@ func (db *DBContext) GerUserWithdrawn(userID int64) (float64, error) {
 }
 
 func (db *DBContext) GerUserWithdrawnHistory(userID int64) ([]models.WithdrawHistoryResponse, error) {
-	query := `
-		SELECT order_number, accrual, uploaded_at
-		FROM orders
-		WHERE user_id = $1 and status = $2 and accrual < 0;`
-
+	ctx := context.Background()
 	var withdrawHistory []models.WithdrawHistoryResponse
-	rows, err := db.db.Query(query, userID, models.Processed)
+	rows, err := db.sqlSelectWithdrawnOrders.Query(ctx, userID, models.Processed)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -197,13 +174,9 @@ func (db *DBContext) GerUserWithdrawnHistory(userID int64) ([]models.WithdrawHis
 }
 
 func (db *DBContext) GerUnprocessedOrders() ([]models.Order, error) {
-	query := `
-		SELECT id, order_number, status
-		FROM orders
-		WHERE NOT (status = ANY($1));`
-
+	ctx := context.Background()
 	var orders []models.Order
-	rows, err := db.db.Query(query, pq.Array([]models.OrderStatus{models.Processed, models.Invalid}))
+	rows, err := db.sqlSelectOrdersByNotInStatus.Query(ctx, pq.Array([]models.OrderStatus{models.Processed, models.Invalid}))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -233,12 +206,8 @@ func (db *DBContext) GerUnprocessedOrders() ([]models.Order, error) {
 }
 
 func (db *DBContext) UpdateOrder(orderID int64, newStatus models.OrderStatus, accrual float64) error {
-	query := `
-		UPDATE orders SET
-			status = $1,
-			accrual = $2
-		WHERE id = $3;`
-	_, err := db.db.Exec(query, newStatus, int64(accrual*100), orderID)
+	ctx := context.Background()
+	_, err := db.sqlUpdateOrder.Exec(ctx, newStatus, int64(accrual*100), orderID)
 	if err != nil {
 		utils.Log.Error("error update order: ", err.Error())
 		return err
